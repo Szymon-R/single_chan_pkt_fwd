@@ -72,6 +72,7 @@ sf_t sf = SF7;
 
 // Set center frequency
 uint32_t  freq = 868100000; // in Mhz! (868.1)
+uint32_t freqs[]={868100000,868300000,868500000,867100000,867300000,867500000,867700000,867900000};
 // Set location
 float lat=0.0;
 float lon=0.0;
@@ -237,6 +238,18 @@ boolean receivePkt(char *payload)
     return true;
 }
 
+void change_frequency()
+{
+    static int counter=0;
+    counter%=8;
+    writeRegister(REG_OPMODE, SX72_MODE_SLEEP);
+    uint64_t frf = ((uint64_t)freqs[counter] << 19) / 32000000;
+    writeRegister(REG_FRF_MSB, (uint8_t)(frf>>16) );
+    writeRegister(REG_FRF_MID, (uint8_t)(frf>> 8) );
+    writeRegister(REG_FRF_LSB, (uint8_t)(frf>> 0) );
+    writeRegister(REG_OPMODE, SX72_MODE_RX_CONTINUOS);
+    ++counter;
+}
 void SetupLoRa()
 {
     
@@ -576,14 +589,15 @@ int main () {
 
         gettimeofday(&nowtime, NULL);
         uint32_t nowseconds = (uint32_t)(nowtime.tv_sec);
-        if (nowseconds - lasttime >= 30) {
+        if (nowseconds - lasttime >= 10) {
             lasttime = nowseconds;
             sendstat();
             cp_nb_rx_rcv = 0;
             cp_nb_rx_ok = 0;
             cp_up_pkt_fwd = 0;
         }
-        delay(1);
+        delay(10);
+        change_frequency();
     }
 
     return (0);
